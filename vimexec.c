@@ -11,11 +11,6 @@ INT main() {
     CHAR szTempFileName[MAX_PATH];
     CHAR szTempBatchFileName[MAX_PATH];
     CHAR szFullCommand[MAX_PATH+sizeof(VIM_EXE)];
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    ZeroMemory( &si, sizeof(si) );
-    si.cb = sizeof(si);
-    ZeroMemory( &pi, sizeof(pi) );
     // If no piped input, then exit
     if(GetFileType(GetStdHandle(STD_INPUT_HANDLE))!= FILE_TYPE_PIPE){
         ExitProcess(1);
@@ -42,19 +37,8 @@ INT main() {
     } while(iBytesRead);
     CloseHandle(hTempFile);
     // Start vim with that unique file
-    //SetStdHandle(STD_INPUT_HANDLE, CreateFileW(L"CONIN$", GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
-    // Build command path
-    //ShellExecute(GetConsoleWindow(), "open",VIM_EXE, szTempBatchFileName, NULL, SW_SHOWDEFAULT);
-    lstrcpy(szFullCommand, VIM_EXE);
-    lstrcat(szFullCommand, szTempBatchFileName);
-    if( !CreateProcess( NULL, szFullCommand, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) 
-    {
-        printf( "Unable to create vim process. \n", GetLastError() );
-        ExitProcess(1);
-    }
-    WaitForSingleObject( pi.hProcess, INFINITE );
-    CloseHandle( pi.hProcess );
-    CloseHandle( pi.hThread );
+    SetStdHandle(STD_INPUT_HANDLE, CreateFileW(L"CONIN$", GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+    ShellExecute(GetConsoleWindow(), "open",VIM_EXE, szTempBatchFileName, NULL, SW_SHOWDEFAULT);
     // Execute .bat file
     ShellExecute(GetConsoleWindow(), "open", szTempBatchFileName, NULL, NULL, SW_SHOWDEFAULT);
     ExitProcess(0);

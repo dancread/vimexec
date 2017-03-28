@@ -24,8 +24,6 @@ INT main() {
     szTempBatchFileName[lstrlen(szTempBatchFileName)-3]='\0';
     lstrcat(szTempBatchFileName,"bat");
     MoveFile(szTempFileName, szTempBatchFileName );
-    printf("%s\n",szTempFileName);
-    printf("%s\n",szTempBatchFileName);
     // Write temp file
     hTempFile = CreateFile((LPTSTR) szTempBatchFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     // Write file header
@@ -37,7 +35,6 @@ INT main() {
     } while(iBytesRead);
     CloseHandle(hTempFile);
     // Start vim with that unique file
-    //SetStdHandle(STD_INPUT_HANDLE, CreateFileW(L"CONIN$", GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
     // Build command path
     lstrcpy(szFullCommand, VIM_EXE);
     lstrcat(szFullCommand, szTempBatchFileName);

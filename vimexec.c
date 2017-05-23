@@ -17,10 +17,6 @@ INT main() {
     CHAR szTempFileName[MAX_PATH];
     CHAR szTempBatchFileName[MAX_PATH];
     CHAR szFullCommand[MAX_PATH+sizeof(VIM_EXE)];
-    // If no piped input, then exit
-    if(GetFileType(GetStdHandle(STD_INPUT_HANDLE))!= FILE_TYPE_PIPE){
-        ExitProcess(1);
-    }
     // Get %TEMP% env variable
     GetTempPath(MAX_PATH, &szTempDirectoryPath);
     // Create unique temp bat file
@@ -34,19 +30,22 @@ INT main() {
     hTempFile = CreateFile((LPTSTR) szTempBatchFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     // Write file header
     WriteFile(hTempFile, MSG_FILE_HEADER, lstrlen(MSG_FILE_HEADER), &iBytesWritten, NULL);
-    // Read stdin
-    do{
-       ReadFile(GetStdHandle(STD_INPUT_HANDLE), wsInputBuffer, INPUT_BUFFER_SIZE, &iBytesRead, NULL);
-       WriteFile(hTempFile, wsInputBuffer, iBytesRead, &iBytesWritten, NULL);
-    } while(iBytesRead);
+    // If piped input, then pipe it to the empty file
+    if(GetFileType(GetStdHandle(STD_INPUT_HANDLE)) == FILE_TYPE_PIPE){
+      // Read stdin
+      do{
+         ReadFile(GetStdHandle(STD_INPUT_HANDLE), wsInputBuffer, INPUT_BUFFER_SIZE, &iBytesRead, NULL);
+         WriteFile(hTempFile, wsInputBuffer, iBytesRead, &iBytesWritten, NULL);
+      } while(iBytesRead);
+#ifdef VIM_CONSOLE // Using console vim
+      // Reset stdin to FILE_TYPE_CHAR for console vim
+      freopen("CONIN$", "r", stdin);
+      // Reset stdout for pdcurses
+      freopen("CONOUT$", "w", stdout);
+#endif
+    }
     CloseHandle(hTempFile);
     // Start vim with that unique file
-#ifdef VIM_CONSOLE // Using console vim
-    // Reset stdin to FILE_TYPE_CHAR for console vim
-    freopen("CONIN$", "r", stdin);
-    // Reset stdout for pdcurses
-    freopen("CONOUT$", "w", stdout);
-#endif
     // Build command path
     lstrcpy(szFullCommand, VIM_EXE);
     lstrcat(szFullCommand, szTempBatchFileName);

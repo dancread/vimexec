@@ -1,8 +1,14 @@
 #include <windows.h>
 #include <stdio.h>
 #define INPUT_BUFFER_SIZE 1024
-#define VIM_EXE "gvim "
+#define VIM_CONSOLE
 #define MSG_FILE_HEADER ":: Everything below this comment block will be executed from a .bat file.\r\n:: If you want to cancel the commands, delete them all!\r\n"
+#ifdef VIM_CONSOLE // Using console vim
+    #define VIM_EXE "vim "
+#endif
+#ifdef VIM_GUI // Using gui vim
+    #define VIM_EXE "gvim "
+#endif
 INT main() {
     INT iBytesRead, iBytesWritten = 0;
     CHAR wsInputBuffer[INPUT_BUFFER_SIZE];
@@ -35,6 +41,12 @@ INT main() {
     } while(iBytesRead);
     CloseHandle(hTempFile);
     // Start vim with that unique file
+#ifdef VIM_CONSOLE // Using console vim
+    // Reset stdin to FILE_TYPE_CHAR for console vim
+    freopen("CONIN$", "r", stdin);
+    // Reset stdout for pdcurses
+    freopen("CONOUT$", "w", stdout);
+#endif
     // Build command path
     lstrcpy(szFullCommand, VIM_EXE);
     lstrcat(szFullCommand, szTempBatchFileName);

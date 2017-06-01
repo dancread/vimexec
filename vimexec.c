@@ -1,7 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
 #define INPUT_BUFFER_SIZE 1024
-#define VIM_CONSOLE
 #define MSG_FILE_HEADER ":: Everything below this comment block will be executed from a .bat file.\r\n:: If you want to cancel the commands, delete them all!\r\n"
 #ifdef VIM_CONSOLE // Using console vim
     #define VIM_EXE "vim "

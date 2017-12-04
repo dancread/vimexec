@@ -5,6 +5,7 @@ CFLAGS=
 OBJECTS=$(SOURCES:.c=.obj)
 LIBS=kernel32.lib shell32.lib
 all:
-	$(CC) $(CFLAGS) $(SOURCES) /link $(LINK_FLAGS) $(LIBS)
+	$(CC) /DVIM_CONSOLE $(SOURCES) /link $(LINK_FLAGS) $(LIBS) /OUT:vimexec.exe  
+	$(CC) /DVIM_GUI $(SOURCES) /link $(LINK_FLAGS) $(LIBS) /OUT:gvimexec.exe
 clean:
 	del $(OBJECTS) vimexec.exe

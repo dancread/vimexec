@@ -1,7 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
 #define INPUT_BUFFER_SIZE 1024
-#define MSG_FILE_HEADER ":: Everything below this comment block will be executed from a .bat file.\r\n:: If you want to cancel the commands, delete them all!\r\n"
 #ifdef VIM_CONSOLE // Using console vim
   #define VIM_EXE "vim "
 #endif
@@ -14,7 +13,6 @@ INT main() {
   HANDLE hTempFile;
   CHAR szTempDirectoryPath[MAX_PATH];
   CHAR szTempFileName[MAX_PATH];
-  CHAR szTempBatchFileName[MAX_PATH];
   CHAR szFullCommand[MAX_PATH+sizeof(VIM_EXE)];
   STARTUPINFO si;
   SECURITY_ATTRIBUTES sa;
@@ -23,25 +21,21 @@ INT main() {
   GetTempPath(MAX_PATH, (LPSTR)&szTempDirectoryPath);
   // Create unique temp bat file
   GetTempFileName(szTempDirectoryPath, "edx", 0, szTempFileName);
-  // Change it to a *.bat file
-  lstrcpyn(szTempBatchFileName, szTempFileName, MAX_PATH);
-  szTempBatchFileName[lstrlen(szTempBatchFileName)-3]='\0';
-  lstrcat(szTempBatchFileName,"bat");
-  MoveFile(szTempFileName, szTempBatchFileName );
-  // Write temp file
-  hTempFile = CreateFile((LPTSTR) szTempBatchFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-  // Write file header
-  WriteFile(hTempFile, MSG_FILE_HEADER, lstrlen(MSG_FILE_HEADER), &iBytesWritten, NULL);
   // If piped input, then pipe it to the empty file
   if(GetFileType(GetStdHandle(STD_INPUT_HANDLE)) == FILE_TYPE_PIPE) {
+    // Write temp file
+    hTempFile = CreateFile((LPTSTR) szTempFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     // Read stdin
     do {
       ReadFile(GetStdHandle(STD_INPUT_HANDLE), wsInputBuffer, INPUT_BUFFER_SIZE, &iBytesRead, NULL);
       WriteFile(hTempFile, wsInputBuffer, iBytesRead, &iBytesWritten, NULL);
     } while(iBytesRead);
+    CloseHandle(hTempFile);
   }
-  CloseHandle(hTempFile);
-  // Start vim with that unique file
+  else {
+    printf("No input detected.\n");
+    ExitProcess(1);
+  }
 #ifdef VIM_CONSOLE // Using console vim
   // Reset  & reopen stdout for vim terminal
   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -63,7 +57,7 @@ INT main() {
 #endif
   // Build command path
   lstrcpy(szFullCommand, VIM_EXE);
-  lstrcat(szFullCommand, szTempBatchFileName);
+  lstrcat(szFullCommand, szTempFileName);
   ZeroMemory( &si, sizeof(si) );
   si.cb = sizeof(si);
   ZeroMemory( &pi, sizeof(pi) );
@@ -76,17 +70,15 @@ INT main() {
   WaitForSingleObject( pi.hProcess, INFINITE );
   CloseHandle( pi.hProcess );
   CloseHandle( pi.hThread );
-  // Execute .bat file
-  ZeroMemory( &si, sizeof(si) );
-  si.cb = sizeof(si);
-  ZeroMemory( &pi, sizeof(pi) );
-  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-  if( !CreateProcess( NULL, szTempBatchFileName, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-    printf( "Unable to create batch process: %d\n", GetLastError() );
-    ExitProcess(1);
+  // Print the file to stdout
+  hTempFile = CreateFile((LPTSTR) szTempFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if(hTempFile == NULL) {
+    printf("Could not read created temporary file\n");
   }
-  WaitForSingleObject( pi.hProcess, INFINITE );
-  CloseHandle( pi.hProcess );
-  CloseHandle( pi.hThread );
+  do {
+    ReadFile(hTempFile, wsInputBuffer, INPUT_BUFFER_SIZE, &iBytesRead, NULL);
+    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), wsInputBuffer, iBytesRead, &iBytesWritten, NULL);
+  } while(iBytesRead);
+  CloseHandle(hTempFile);
   ExitProcess(0);
 }
